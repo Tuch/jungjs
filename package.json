@@ -1,0 +1,25 @@
+{
+  "name": "JungJS",
+  "version": "1.0.0",
+  "description": "Yet another experimental clone of reactjs",
+  "main": "index.js",
+  "scripts": {},
+  "author": "Alex Afonin",
+  "license": "ISC",
+  "dependencies": {
+    "vdom-to-html": "2.2.0",
+    "vdom-virtualize": "1.0.1",
+    "virtual-dom": "2.1.1"
+  },
+  "devDependencies": {
+    "babel": "6.3.26",
+    "babel-core": "6.4.5",
+    "babel-loader": "6.2.2",
+    "babel-preset-es2015": "^6.3.13",
+    "babel-eslint": "4.1.8",
+    "babel-loader": "6.2.2",
+    "eslint": "^2.2.0",
+    "imports-loader": "0.6.5",
+    "webpack": "^1.12.13"
+  }
+}
