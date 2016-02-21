@@ -56,7 +56,7 @@ var Component = Base.extend({
 
         for (var name in this.childrens) {
             childrens[name.toUpperCase()] = Component.extend(this.childrens[name]);
-        };
+        }
 
         return childrens;
     },
@@ -100,8 +100,6 @@ var Component = Base.extend({
         var potentialProps = vWidget.originalVNode.properties.attributes,
             additionalProps =  vWidget.originalVNode.properties;
 
-        this.__getScalarsByName = potentialProps['scalars-mode'] === 'name';
-
         for (var prop in this.propTypes) {
             var snakeProp = h.camelToSnake(prop);
             var propType = this.propTypes[prop];
@@ -109,7 +107,6 @@ var Component = Base.extend({
             if (this.__isTypeSupported(propType)) {
                 props[prop] = this.__parseProp(
                     propType,
-                    prop,
                     potentialProps.hasOwnProperty(snakeProp) ? potentialProps[snakeProp] : additionalProps[prop],
                     vWidget.ownerVWidget.com,
                     props[prop]
@@ -122,7 +119,7 @@ var Component = Base.extend({
         return props;
     },
 
-    __parseProp: function (propType, propName, propValue, ownerCom, defaultValue) {
+    __parseProp: function (propType, propValue, ownerCom, defaultValue) {
         switch (propType) {
             case Function:
                 return this.__getValueByExpression(propValue, ownerCom, defaultValue || h.noop);
@@ -137,15 +134,15 @@ var Component = Base.extend({
             break;
 
             case Boolean:
-                return this.__parseBooleanProp(propName, propValue, ownerCom, defaultValue);
+                return this.__prepareValue(propValue !== 'false', defaultValue);
             break;
 
             case String:
-                return this.__parseStringProp(propName, propValue, ownerCom, defaultValue || '');
+                return this.__prepareValue(propValue, defaultValue === undefined ? '' : defaultValue);
             break;
 
             case Number:
-                return this.__parseNumberProp(propName, propValue, ownerCom, defaultValue || NaN);
+                return this.__prepareValue(propValue, defaultValue === undefined ? NaN : defaultValue);
             break;
         }
     },
@@ -154,9 +151,7 @@ var Component = Base.extend({
         return this.__supportedTypes.indexOf(type) != -1;
     },
 
-    __getValueByExpression: function (propValue, context, defaultValue) {
-        var value = parse(propValue)(context);
-
+    __prepareValue: function (value, defaultValue) {
         if (typeof value === 'undefined') {
             value = defaultValue;
         }
@@ -164,27 +159,8 @@ var Component = Base.extend({
         return value;
     },
 
-    //todo: нужно убрать три функции внизу. Возможно удалить scalar-prop
-    __parseBooleanProp: function (propName, propValue, owner, defaultValue) {
-        propValue = this.__parseScalarProp(propName, propValue, owner, defaultValue);
-        return Boolean(propValue && propValue !== 'false')
-    },
-
-    __parseStringProp: function (propName, propValue, owner, defaultValue) {
-        propValue = this.__parseScalarProp(propName, propValue, owner, defaultValue);
-        return String(propValue);
-    },
-
-    __parseNumberProp: function (propName, propValue, owner, defaultValue) {
-        propValue = this.__parseScalarProp(propName, propValue, owner, defaultValue);
-
-        return Number(propValue);
-    },
-
-    __parseScalarProp: function (propName, propValue, owner, defaultValue) {
-        var result = this.__getScalarsByName ? parse(propValue)(owner) : propValue;
-
-        return result === undefined ? defaultValue : result;
+    __getValueByExpression: function (propValue, context, defaultValue) {
+        return this.__prepareValue(parse(propValue)(context), defaultValue);
     },
 
     __getInintialSelectors: function () {

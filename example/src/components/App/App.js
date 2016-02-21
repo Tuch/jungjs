@@ -14,6 +14,14 @@ export default {
         Section: Section
     },
 
+    getInitialState: function () {
+        return {
+            onClick (e) {
+                debugger
+            }
+        };
+    },
+
     render () {
         return this.template();
     }

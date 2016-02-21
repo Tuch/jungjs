@@ -13,7 +13,8 @@ module.exports = {
     resolve: {
         root: [
             path.join(__dirname, '..'),
-            path.join(__dirname, 'node_modules')
+            path.join(__dirname, 'node_modules'),
+            path.join(__dirname, 'src', 'components')
         ]
     },
     noInfo: false,
@@ -22,7 +23,7 @@ module.exports = {
         modulesDirectories: [
             path.join(__dirname, 'node_modules'),
             path.join(__dirname, 'web_loaders')
-        ],
+        ]
     },
     module: {
         loaders: [{
