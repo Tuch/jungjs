@@ -1,0 +1,7 @@
+<ul class="nav nav-tabs">
+    <% tabs.forEach(function (tab) { %>
+        <li data-tab="<%= tab.name %>" class="<%= currentTab === tab.name ? 'active' : '' %>">
+            <a href="#"><%= tab.title %></a>
+        </li>
+    <% }); %>
+</ul>

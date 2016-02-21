@@ -1,35 +1,51 @@
+import TabsBar from 'TabsBar/TabsBar.js';
+import ProgressBar from 'ProgressBar/ProgressBar.js';
 import cn from './TabsExample.css';
 import content from './content.json';
-import delegate from 'delegate-events';
 
 export default {
     name: 'TabsExample',
 
     template: require('./TabsExample.jst'),
 
-    dataAttrs: {
-        tab: 'data-tab'
+    childrens: {
+        TabsBar: TabsBar,
+        ProgressBar: ProgressBar
     },
 
     getInitialState () {
         return {
-            currentTab: 'tab2'
+            currentTabKey: 'tab1'
         }
     },
 
-    assignEvents () {
-        delegate.bind(this.getDOMNode(), this.selectors.tab, 'click', this.onTabClick.bind(this), false);
-    },
+    tabs: [{
+        name: 'tab1',
+        title: 'tab 1'
+    }, {
+        name: 'tab2',
+        title: 'tab 2'
+    }, {
+        name: 'tab3',
+        title: 'tab 3'
+    }],
 
-    onTabClick (e) {
-        let name = e.delegateTarget.attributes.getNamedItem(this.dataAttrs.tab).textContent;
-
+    onTabClick (key) {
         this.setState({
-            currentTab: name
+            currentTabKey: key
         });
     },
 
+    calcProgress () {
+        return Math.round(Number(this.state.currentTabKey.replace(/[^0-9]*/gi, '') || 0) / 3 * 100);
+    },
+
     render () {
-        return this.template({state: this.state, content: content[this.state.currentTab], cn: cn});
+        return this.template({
+            state: this.state,
+            content: content[this.state.currentTabKey],
+            cn: cn,
+            progress: this.calcProgress()
+        });
     }
 };
