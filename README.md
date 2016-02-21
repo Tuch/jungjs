@@ -7,6 +7,16 @@ Completely support original life cycle and following hooks:
 - componentWillUnmount
 - componentWillReceiveProps
 - getChildContext
+- getInitialState
+- getDefaultProps
+- shouldComponentUpdate
+- render of course!
+
+and following methods:
+- setState
+- replaceState
+- forceUpdate
+
 
 Support lite version of propTypes (only native js types like Function, Array and etc.)
 Instead JSX uses raw HTML
