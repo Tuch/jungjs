@@ -1,0 +1,11 @@
+:local .p {
+    padding: 10px 30px;
+    background-color: #f7f7f9;
+    border: 1px solid #e1e1e8;
+    border-radius: 0 0 10px 10px;
+}
+
+:local .ul {
+    padding: 0 21px;
+    border-bottom: none;
+}

@@ -1,0 +1,26 @@
+<%
+    var tabs = [{
+        name: 'tab1',
+        title: 'tab 1'
+    }, {
+        name: 'tab2',
+        title: 'tab 2'
+    }, {
+        name: 'tab3',
+        title: 'tab 3'
+    }];
+%>
+
+<div>
+    <ul class="nav nav-tabs <%= cn.ul %>">
+        <% tabs.forEach(function (tab) { %>
+            <li data-tab="<%= tab.name %>" class="<%= state.currentTab === tab.name ? 'active' : '' %>">
+                <a href="#"><%= tab.title %></a>
+            </li>
+        <% }); %>
+    </ul>
+
+    <p class="<%= cn.p %>">
+        <%= content %>
+    </p>
+</div>

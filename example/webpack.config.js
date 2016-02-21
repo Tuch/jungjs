@@ -43,6 +43,9 @@ module.exports = {
             test: /\.css$/,
             loader: 'style!css'
         }, {
+            test: /\.json/,
+            loader: 'json'
+        }, {
             test: /bootstrap\.js/,
             loader: 'imports?jQuery=jquery'
         }, {

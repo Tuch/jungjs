@@ -35,7 +35,7 @@ VirtualWidget.prototype = {
         com.__update();
 
         prevWidget.getChildrenWidgets().forEach(function (widget) {
-            if (widget.com && !checkNodeForParent(widget.com.node, document)) {
+            if (widget.com && !h.checkNodeForParent(widget.com.node, document)) {
                 widget.destroy(widget.com.node);
             }
         });

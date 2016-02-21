@@ -247,7 +247,7 @@ var Component = Base.extend({
 
         this.node = h.applyPatch(this.node, h.getDiff(this.vNode, newVNode));
 
-        var emptyWidget = findEmptyWidget(newVNode);
+        var emptyWidget = h.findEmptyWidget(newVNode);
 
         if (emptyWidget) {
             console.warn('Do you have widget without component! Check uniqueness of your keys in this widget!', this.__vWidget.name);

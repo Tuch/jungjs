@@ -1,13 +1,20 @@
-module.exports = {
+import template from './App.jst'
+import Header from './Header/Header';
+import TabsExample from './TabsExample/TabsExample';
+import Section from './Section/Section'
+
+export default {
     name: 'App',
 
-    template: require('./App.jst'),
+    template: template,
 
     childrens: {
-        Header: require('./Header/Header')
+        Header: Header,
+        TabsExample: TabsExample,
+        Section: Section
     },
 
     render () {
-        return this.template(this.state);
+        return this.template();
     }
 };
