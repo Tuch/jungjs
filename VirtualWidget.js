@@ -1,14 +1,11 @@
 var h = require('./helpers.js');
-var Component = require('./Component.js');
-var extend = require('./extend.js');
 
-let VirtualWidget = function (vNode, ownerVWidget, Component, componentsHash) {
+var VirtualWidget = function (originalVNode, ownerVWidget, Component) {
     this.uid = h.getUniqueId();
     this.ownerVWidget = ownerVWidget;
     this.childrenVWidgets = [];
-    this.originalVNode = vNode;
+    this.originalVNode = originalVNode;
     this.Component = Component;
-    this.componentsHash = componentsHash;
 
     if (ownerVWidget) {
         ownerVWidget.childrenVWidgets.push(this);
@@ -20,15 +17,17 @@ VirtualWidget.prototype = {
 
     destroyed: false,
 
-    init () {
+    init: function (isRoot) {
         var com = this.com = new this.Component(this);
 
         com.__mount();
 
+        isRoot && com.emit('DOMREADY');
+
         return com.node;
     },
 
-    update (prevWidget, node) {
+    update: function (prevWidget, node) {
         var com = this.com = prevWidget.com;
 
         com.__vWidget = this;
@@ -36,7 +35,7 @@ VirtualWidget.prototype = {
         com.__update();
 
         prevWidget.getChildrenWidgets().forEach(function (widget) {
-            if (widget.com && !checkNodeForParent(widget.com.node, document)) {
+            if (widget.com && !h.checkNodeForParent(widget.com.node, document)) {
                 widget.destroy(widget.com.node);
             }
         });
@@ -44,7 +43,7 @@ VirtualWidget.prototype = {
         return node;
     },
 
-    destroy (node) {
+    destroy: function (node) {
         if (this.destroyed) {
             return;
         }
@@ -55,7 +54,7 @@ VirtualWidget.prototype = {
         this.destroyed = true;
     },
 
-    getParentWidgets (list) {
+    getParentWidgets: function (list) {
         list = list || [];
 
         list.push(this);
@@ -67,7 +66,7 @@ VirtualWidget.prototype = {
         return list;
     },
 
-    getChildrenWidgets (list) {
+    getChildrenWidgets: function (list) {
         list = list || [];
 
         for (var i = 0, length = this.childrenVWidgets.length; i < length; i++) {
@@ -79,7 +78,7 @@ VirtualWidget.prototype = {
         return list;
     },
 
-    trigger (widgets, event, args) {
+    trigger: function (widgets, event, args) {
         for (var i = 0, length = widgets.length; i < length; i++) {
             if (widgets[i].com) {
                 widgets[i].com.trigger(event, args);
@@ -87,7 +86,7 @@ VirtualWidget.prototype = {
         }
     },
 
-    compile (vNode) {
+    compile: function (vNode, componentsHash, isChild) {
         if (!vNode) {
             throw error('Empty render', 'Empty render results in {0} component!', this.com.name);
         }
@@ -100,10 +99,10 @@ VirtualWidget.prototype = {
             return vNode;
         }
 
-        var Component = this.componentsHash[vNode.tagName], vWidget;
+        var Component = componentsHash[vNode.tagName], vWidget;
 
         if (Component) {
-            vWidget = new VirtualWidget(vNode, this, Component, this.componentsHash);
+            vWidget = new VirtualWidget(vNode, this, Component);
         }
 
         var children = vNode.children || [];
@@ -112,13 +111,13 @@ VirtualWidget.prototype = {
         for (var i = 0, length = children.length; i < length; i++) {
             var currCount = children[i].count;
 
-            children[i] = this.compile(children[i]);
+            children[i] = this.compile(children[i], componentsHash, true);
             vNode.count -= (currCount || 0) - (children[i].count || 0);
         }
 
         // If there is parent widget and current node has children attribute then use child nodes by parent widget
         // also correcting count value
-        if (this.originalVNode.children && vNode.properties.attributes.hasOwnProperty('children')) {
+        if (this.originalVNode && this.originalVNode.children && vNode.properties.attributes.hasOwnProperty('children')) {
             vNode.children = this.originalVNode.children;
             vNode.count = this.originalVNode.count;
         }
@@ -128,24 +127,18 @@ VirtualWidget.prototype = {
 
         vWidget ? vWidget.id = key : vNode.key = key;
 
-        return vWidget || vNode;
+        var result = vWidget || vNode;
+
+        if (!isChild) {
+            if (result.properties && result.properties.className || (this.originalVNode && this.originalVNode.properties.className)) {
+                var className = (result.properties.className || '') + ' ' + (this.originalVNode.properties.className || '');
+
+                result.properties.className = result.properties.attributes['class'] = className;
+            }
+        }
+
+        return result;
     }
 };
 
 module.exports = VirtualWidget;
-
-module.exports.render = function (vNode, node, proto, componentsHash) {
-    proto = extend({
-        render: function () {
-            return vNode;
-        }
-    }, proto);
-
-    let vWidget = new VirtualWidget(h.fromHTML('<div></div>'), null, Component.extend(proto), componentsHash);
-
-    node.appendChild(vWidget.init());
-
-    vWidget.com.emit('DOMREADY');
-
-    return vWidget.com;
-};

@@ -40,7 +40,7 @@ exports.camelToSnake = function(string) {
     });
 };
 
-let s4 = exports.s4 = function() {
+var s4 = exports.s4 = function() {
     return (((1 + Math.random()) * 0x10000) | 0).toString(16).substring(1);
 };
 
@@ -58,7 +58,7 @@ exports.checkNodeForParent = function(node, parent) {
     return false;
 };
 
-let findEmptyWidget = exports.findEmptyWidget = function (vNode) {
+var findEmptyWidget = exports.findEmptyWidget = function (vNode) {
     if (vNode.Component && !vNode.com) {
         return vNode;
     }
@@ -74,7 +74,7 @@ let findEmptyWidget = exports.findEmptyWidget = function (vNode) {
     }
 };
 
-let getRootWidget = exports.getRootWidget = function (vNode) {
+var getRootWidget = exports.getRootWidget = function (vNode) {
     if (vNode.type === 'Widget') {
         return vNode;
     }

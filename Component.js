@@ -5,29 +5,31 @@ var h = require('./helpers.js');
 var extend = require('./extend.js');
 var Base = require('./Base.js');
 
-module.exports = Base.extend({
-    constructor (vWidget) {
-        this.name = 'Component name';
-        this.assignEvents = h.noop;
-        this.unassignEvents = h.noop;
-        this.componentWillMount = h.noop;
-        this.componentDidMount = h.noop;
-        this.componentWillUpdate = h.noop;
-        this.componentDidUpdate = h.noop;
-        this.componentWillUnmount = h.noop;
-        this.componentWillReceiveProps = h.noop;
-        this.getChildContext = h.noop;
-        this.propTypes = {};
-        this.dataAttrs = {};
-        this.__phase = 'MOUNTING';
-        this.__isInitedRafForceUpdate = false;
-        this.__supportedTypes = [Function, Object, Array, Boolean, Number, String];
+var Component = Base.extend({
+    name: 'Component name',
+    assignEvents: h.noop,
+    unassignEvents: h.noop,
+    componentWillMount: h.noop,
+    componentDidMount: h.noop,
+    componentWillUpdate: h.noop,
+    componentDidUpdate: h.noop,
+    componentWillUnmount: h.noop,
+    componentWillReceiveProps: h.noop,
+    getChildContext: h.noop,
+    propTypes: {},
+    dataAttrs: {},
+    childrens: {},
+    __phase: 'MOUNTING',
+    __isInitedRafForceUpdate: false,
+    __supportedTypes: [Function, Object, Array, Boolean, Number, String],
 
+    constructor: function (vWidget) {
         this.__uid = h.getUniqueId();
         this.__events = {};
-        this.__vWidget = vWidget;
+        this.__vWidget = vWidget || {};
         this.__initContext();
         this.constructor.defaultProps = this.constructor.defaultProps || this.getDefaultProps();
+        this.constructor.childrens = this.constructor.childrens || this.__defineChildrens();
         this.state = this.getInitialState();
         this.props = this.__createProps();
         this.selectors = this.__getInintialSelectors();
@@ -35,7 +37,7 @@ module.exports = Base.extend({
         this.on('DESTROY', this.__onDestroy);
     },
 
-    __initContext () {
+    __initContext: function () {
         var ownerVWidget = this.__vWidget.ownerVWidget;
 
         if (!ownerVWidget) {
@@ -49,7 +51,17 @@ module.exports = Base.extend({
         return this;
     },
 
-    __onDomReady () {
+    __defineChildrens: function () {
+        var childrens = {};
+
+        for (var name in this.childrens) {
+            childrens[name.toUpperCase()] = Component.extend(this.childrens[name]);
+        };
+
+        return childrens;
+    },
+
+    __onDomReady: function () {
         var phase = this.__phase;
 
         this.__phase = 'READY';
@@ -64,7 +76,7 @@ module.exports = Base.extend({
         }
     },
 
-    __onDestroy () {
+    __onDestroy: function () {
         if (this.node.remove) {
             this.node.remove();
 
@@ -74,7 +86,7 @@ module.exports = Base.extend({
         this.__vWidget.destroy(this.node);
     },
 
-    __createProps () {
+    __createProps: function () {
         var props = {}, vWidget = this.__vWidget;
 
         extend(props, this.constructor.defaultProps);
@@ -110,7 +122,7 @@ module.exports = Base.extend({
         return props;
     },
 
-    __parseProp (propType, propName, propValue, ownerCom, defaultValue) {
+    __parseProp: function (propType, propName, propValue, ownerCom, defaultValue) {
         switch (propType) {
             case Function:
                 return this.__getValueByExpression(propValue, ownerCom, defaultValue || h.noop);
@@ -138,11 +150,11 @@ module.exports = Base.extend({
         }
     },
 
-    __isTypeSupported (type) {
+    __isTypeSupported: function (type) {
         return this.__supportedTypes.indexOf(type) != -1;
     },
 
-    __getValueByExpression (propValue, context, defaultValue) {
+    __getValueByExpression: function (propValue, context, defaultValue) {
         var value = parse(propValue)(context);
 
         if (typeof value === 'undefined') {
@@ -153,29 +165,29 @@ module.exports = Base.extend({
     },
 
     //todo: нужно убрать три функции внизу. Возможно удалить scalar-prop
-    __parseBooleanProp (propName, propValue, owner, defaultValue) {
+    __parseBooleanProp: function (propName, propValue, owner, defaultValue) {
         propValue = this.__parseScalarProp(propName, propValue, owner, defaultValue);
         return Boolean(propValue && propValue !== 'false')
     },
 
-    __parseStringProp (propName, propValue, owner, defaultValue) {
+    __parseStringProp: function (propName, propValue, owner, defaultValue) {
         propValue = this.__parseScalarProp(propName, propValue, owner, defaultValue);
         return String(propValue);
     },
 
-    __parseNumberProp (propName, propValue, owner, defaultValue) {
+    __parseNumberProp: function (propName, propValue, owner, defaultValue) {
         propValue = this.__parseScalarProp(propName, propValue, owner, defaultValue);
 
         return Number(propValue);
     },
 
-    __parseScalarProp (propName, propValue, owner, defaultValue) {
+    __parseScalarProp: function (propName, propValue, owner, defaultValue) {
         var result = this.__getScalarsByName ? parse(propValue)(owner) : propValue;
 
         return result === undefined ? defaultValue : result;
     },
 
-    __getInintialSelectors () {
+    __getInintialSelectors: function () {
         var selectors = {};
 
         for (var key in this.dataAttrs) {
@@ -185,18 +197,11 @@ module.exports = Base.extend({
         return selectors;
     },
 
-    __compile () {
-        var renderResult = this.render();
-        var vNode = this.__vWidget.compile(renderResult, this.__vWidget);
-
-        if (vNode.properties && vNode.properties.className || this.__vWidget.originalVNode.properties.className) {
-            vNode.properties.className = (vNode.properties.className || '') + ' ' + (this.__vWidget.originalVNode.properties.className || '');
-        }
-
-        return vNode;
+    __compile: function () {
+        return this.__vWidget.compile(this.render(), this.constructor.childrens);
     },
 
-    __mount () {
+    __mount: function () {
         this.componentWillMount();
         this.state = this.__nextState || this.state;
         this.props = this.__nextProps || this.props;
@@ -211,7 +216,7 @@ module.exports = Base.extend({
         return this;
     },
 
-    __update (isInitiator) {
+    __update: function (isInitiator) {
         this.__phase = 'UPDATING';
         this.__nextProps = isInitiator ? this.props : this.__createProps();
         this.__nextState = this.__nextState || this.state;
@@ -242,7 +247,7 @@ module.exports = Base.extend({
 
         this.node = h.applyPatch(this.node, h.getDiff(this.vNode, newVNode));
 
-        var emptyWidget = findEmptyWidget(newVNode);
+        var emptyWidget = h.findEmptyWidget(newVNode);
 
         if (emptyWidget) {
             console.warn('Do you have widget without component! Check uniqueness of your keys in this widget!', this.__vWidget.name);
@@ -256,31 +261,31 @@ module.exports = Base.extend({
         return this;
     },
 
-    getInitialState () {
+    getInitialState: function () {
         return {};
     },
 
-    getDefaultProps () {
+    getDefaultProps: function () {
         return {};
     },
 
-    shouldComponentUpdate () {
+    shouldComponentUpdate: function () {
         return true;
     },
 
-    render () {
+    render: function () {
         throw error('No render function', this.name + '\'s render function is not defined!');
     },
 
-    getDOMNode () {
+    getDOMNode: function () {
         return this.node;
     },
 
-    isReady () {
+    isReady: function () {
         return this.__phase === 'READY';
     },
 
-    setState (state) {
+    setState: function (state) {
         if (typeof state === 'function') {
             state = state(this.state, this.props);
         }
@@ -288,13 +293,13 @@ module.exports = Base.extend({
         return this.replaceState(extend({}, this.state, this.__nextState, state));
     },
 
-    replaceState (state) {
+    replaceState: function (state) {
         this.__nextState = state;
 
         return this.forceUpdate();
     },
 
-    __initRafForceUpdate () {
+    __initRafForceUpdate: function () {
         if (this.__isInitedRafForceUpdate) {
             return this;
         }
@@ -310,7 +315,7 @@ module.exports = Base.extend({
         return this;
     },
 
-    forceUpdate () {
+    forceUpdate: function () {
         if (this.isReady()) {
             this.__initRafForceUpdate();
         }
@@ -318,25 +323,25 @@ module.exports = Base.extend({
         return this;
     },
 
-    broadcast (event, args) {
+    broadcast: function (event, args) {
         this.__vWidget.trigger(this.__vWidget.getParentWidgets(), event, args);
 
         return this;
     },
 
-    destroy () {
+    destroy: function () {
         this.emit('DESTROY');
 
         return this;
     },
 
-    emit (event, args) {
+    emit: function (event, args) {
         this.__vWidget.trigger(this.__vWidget.getChildrenWidgets(), event, args);
 
         return this;
     },
 
-    trigger (event, args) {
+    trigger: function (event, args) {
         var events = this.__events[event] = this.__events[event] || {};
 
         for (var hash in events) {
@@ -346,7 +351,7 @@ module.exports = Base.extend({
         return this;
     },
 
-    on (event, fn) {
+    on: function (event, fn) {
         var events = this.__events[event] = this.__events[event] || {},
             hash = h.s4();
 
@@ -357,3 +362,5 @@ module.exports = Base.extend({
         };
     }
 });
+
+module.exports = Component;

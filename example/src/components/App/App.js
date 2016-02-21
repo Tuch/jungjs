@@ -1,10 +1,20 @@
-const Jung = require('index.js');
-const Header = require('./Header/Header');
+import template from './App.jst'
+import Header from './Header/Header';
+import TabsExample from './TabsExample/TabsExample';
+import Section from './Section/Section'
 
-Jung.component('App', {
-    template: require('./App.jst'),
+export default {
+    name: 'App',
+
+    template: template,
+
+    childrens: {
+        Header: Header,
+        TabsExample: TabsExample,
+        Section: Section
+    },
 
     render () {
         return this.template();
     }
-});
+};

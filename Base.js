@@ -1,4 +1,4 @@
-let extend = require('./extend.js');
+var extend = require('./extend.js');
 
 function Base () { }
 

@@ -1,16 +1,17 @@
 {
     "env": {
-        "es6": true,
         "browser": true,
         "node": true
     },
-    "settings": { },
-    "plugins": [ ],
+    "extends": "eslint:recommended",
     "rules": {
         "strict": 0,
         "quotes": 0,
         "camelcase": 0,
         "no-underscore-dangle": 0,
         "no-empty": 0
+    },
+    "parserOptions": {
+        "sourceType": "module"
     }
 }
