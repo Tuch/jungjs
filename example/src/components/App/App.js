@@ -1,10 +1,13 @@
-const Jung = require('index.js');
-const Header = require('./Header/Header');
+module.exports = {
+    name: 'App',
 
-Jung.component('App', {
     template: require('./App.jst'),
 
+    childrens: {
+        Header: require('./Header/Header')
+    },
+
     render () {
-        return this.template();
+        return this.template(this.state);
     }
-});
+};

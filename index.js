@@ -1,14 +1,32 @@
-let VirtualWidget = require('./VirtualWidget.js');
-let Component = require('./Component.js');
+var VirtualWidget = require('./VirtualWidget.js');
+var Component = require('./Component.js');
+var extend = require('./extend.js');
 
-let componentsHash = {};
+module.exports = {
+    createNode: function (componentProto, initialState) {
+        var surrogateProto = {
+            getInitialState: function () {
+                return extend(componentProto.getInitialState && componentProto.getInitialState() || {}, initialState);
+            }
+        };
 
-let Jung = module.exports = {
-    component (name, proto) {
-        componentsHash[name.toUpperCase()] = Component.extend(proto);
+        var vWidget = new VirtualWidget(
+            null, null,
+            Component.extend(componentProto).extend(surrogateProto)
+        );
+
+        return vWidget.init(true);
     },
 
-    render (vNode, node, proto) {
-        return VirtualWidget.render(vNode, node, proto, componentsHash);
+    getComponent: function (node) {
+        return node.com;
+    },
+
+    render: function (componentProto, rootNode, initialState) {
+        var node = this.createNode(componentProto, initialState);
+
+        rootNode.appendChild(node);
+
+        return this.getComponent(node);
     }
 };

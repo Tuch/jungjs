@@ -1,9 +1,9 @@
-const Jung = require('index.js');
+module.exports = {
+    name: 'Header',
 
-Jung.component('Header', {
     template: require('./Header.jst'),
 
     render () {
         return this.template();
     }
-});
+};

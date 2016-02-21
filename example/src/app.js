@@ -1,6 +1,8 @@
-const Jung = require('index.js');
-const index = require('./index.html');
-const bootstrap = require('./bootstrap-module.js');
-const App = require('./components/App/App');
+var Jung = require('index.js');
+var index = require('./index.html');
+var bootstrap = require('./bootstrap-module.js');
+var App = require('./components/App/App');
 
-let app = Jung.render('<App></App>', document.getElementById('app'));
+Jung.render(App, document.getElementById('app'), {
+    greeting: 'Hello world!'
+});
