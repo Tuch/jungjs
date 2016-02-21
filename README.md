@@ -1,3 +1,9 @@
+# JungJS
+[![GitHub version](https://badge.fury.io/gh/Tuch%2Fjungjs.svg)](https://badge.fury.io/gh/Tuch%2Fjungjs)
+[![Davis Dependency status](https://david-dm.org/Tuch/jungjs.svg)](https://badge.fury.io/gh/Tuch%2Fjungjs)
+[![experimental](http://hughsk.github.io/stability-badges/dist/experimental.svg)](http://github.com/hughsk/stability-badges)
+
+
 Reactjs API es5 implementation based on [virtual-dom](https://github.com/Matt-Esch/virtual-dom).
 Completely support original life cycle and following hooks:
 - componentWillMount
