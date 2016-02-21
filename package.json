@@ -1,7 +1,7 @@
 {
   "name": "JungJS",
   "version": "1.0.0",
-  "description": "Yet another experimental reqctjs clone",
+  "description": "Yet another experimental ReactJS clone",
   "main": "index.js",
   "scripts": {},
   "author": "Alex Afonin",
