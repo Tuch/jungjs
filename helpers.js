@@ -4,10 +4,6 @@ var toHTML = require('vdom-to-html');
 
 exports.noop = function () {};
 
-exports.registerComponent = function (name, getter, componentsHash) {
-    componentsHash[name.toUpperCase()] = getter;
-};
-
 exports.toDOM = function (vNode) {
     return dom.create(vNode, {warn: console.warn.bind(console)});
 };
