@@ -1,7 +1,7 @@
 {
-  "name": "JungJS",
+  "name": "jungjs",
   "version": "1.0.0",
-  "description": "Yet another experimental ReactJS clone",
+  "description": "Friendly implementaion of ReactJS API based on Virtual-Dom library",
   "main": "index.js",
   "scripts": {},
   "author": "Alex Afonin",
@@ -17,5 +17,5 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Tuch/jungjs.git"
-  },
+  }
 }
