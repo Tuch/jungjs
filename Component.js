@@ -3,10 +3,11 @@ var error = require('./error.js');
 var parse = require('./parse.js');
 var h = require('./helpers.js');
 var extend = require('./extend.js');
+var defaults = require('./defaults.js');
 var Base = require('./Base.js');
 
 var Component = Base.extend({
-    name: 'Component name',
+    name: 'NO-NAME',
     assignEvents: h.noop,
     unassignEvents: h.noop,
     componentWillMount: h.noop,
@@ -21,7 +22,6 @@ var Component = Base.extend({
     childrens: {},
     __phase: 'MOUNTING',
     __isInitedRafForceUpdate: false,
-    __supportedTypes: [Function, Object, Array, Boolean, Number, String],
 
     constructor: function (vWidget) {
         this.__uid = h.getUniqueId();
@@ -86,81 +86,59 @@ var Component = Base.extend({
         this.__vWidget.destroy(this.node);
     },
 
-    __createProps: function () {
-        var props = {}, vWidget = this.__vWidget;
+    __createProps: function (props) {
+        props = props || this.__createPropsFromVNode();
 
-        extend(props, this.constructor.defaultProps);
-
-        if (!vWidget.ownerVWidget) {
-            props.children = [];
-
-            return props;
-        }
-
-        var potentialProps = vWidget.originalVNode.properties.attributes,
-            additionalProps =  vWidget.originalVNode.properties;
+        defaults(props, this.constructor.defaultProps);
 
         for (var prop in this.propTypes) {
-            var snakeProp = h.camelToSnake(prop);
-            var propType = this.propTypes[prop];
-
-            if (this.__isTypeSupported(propType)) {
-                props[prop] = this.__parseProp(
-                    propType,
-                    potentialProps.hasOwnProperty(snakeProp) ? potentialProps[snakeProp] : additionalProps[prop],
-                    vWidget.ownerVWidget.com,
-                    props[prop]
-                );
-            }
+            props[prop] = this.__valueToType(props[prop], this.propTypes[prop]);
         }
 
-        props.children = vWidget.originalVNode.children;
+        props.children = props.children || [];
 
         return props;
     },
 
-    __parseProp: function (propType, propValue, ownerCom, defaultValue) {
-        switch (propType) {
-            case Function:
-                return this.__getValueByExpression(propValue, ownerCom, defaultValue || h.noop);
-            break;
+    __createPropsFromVNode: function () {
+        var originalVNode = this.__vWidget.originalVNode;
+        var ownerVWidget = this.__vWidget.ownerVWidget;
+        var props = {}, snakeProp;
 
-            case Object:
-                return this.__getValueByExpression(propValue, ownerCom, defaultValue || {});
-            break;
-
-            case Array:
-                return this.__getValueByExpression(propValue, ownerCom, defaultValue || []);
-            break;
-
-            case Boolean:
-                return this.__prepareValue(propValue !== 'false', defaultValue);
-            break;
-
-            case String:
-                return this.__prepareValue(propValue, defaultValue === undefined ? '' : defaultValue);
-            break;
-
-            case Number:
-                return this.__prepareValue(propValue, defaultValue === undefined ? NaN : defaultValue);
-            break;
+        if (!ownerVWidget || !originalVNode || !originalVNode.properties) {
+            return props;
         }
+
+        var potentialProps = originalVNode.properties.attributes;
+        var additionalProps =  originalVNode.properties;
+
+        for (var prop in this.propTypes) {
+            snakeProp = h.camelToSnake(prop);
+
+            props[prop] = this.__parseValueByType(
+                potentialProps.hasOwnProperty(snakeProp) ? potentialProps[snakeProp] : additionalProps[prop],
+                ownerVWidget.com,
+                this.propTypes[prop]
+            );
+        }
+
+        props.children = originalVNode.children;
+
+        return props;
     },
 
-    __isTypeSupported: function (type) {
-        return this.__supportedTypes.indexOf(type) != -1;
-    },
-
-    __prepareValue: function (value, defaultValue) {
-        if (typeof value === 'undefined') {
-            value = defaultValue;
+    __parseValueByType: function (value, context, type) {
+        switch (type) {
+            case Function: return parse(value)(context);
+            case Object: return parse(value)(context);
+            case Array: return parse(value)(context);
         }
 
         return value;
     },
 
-    __getValueByExpression: function (propValue, context, defaultValue) {
-        return this.__prepareValue(parse(propValue)(context), defaultValue);
+    __valueToType: function (value, type) {
+        return this.__toTypes[type] ? this.__toTypes[type](value) : value;
     },
 
     __getInintialSelectors: function () {
@@ -192,9 +170,9 @@ var Component = Base.extend({
         return this;
     },
 
-    __update: function (isInitiator) {
+    __update: function (isInitiator, props) {
         this.__phase = 'UPDATING';
-        this.__nextProps = isInitiator ? this.props : this.__createProps();
+        this.__nextProps = this.__createProps(isInitiator ? (props || this.props) : null);
         this.__nextState = this.__nextState || this.state;
 
         if (this.__nextProps !== this.props) {
@@ -269,13 +247,21 @@ var Component = Base.extend({
         return this.replaceState(extend({}, this.state, this.__nextState, state));
     },
 
+    setProps: function (props) {
+        if (this.isReady()) {
+            this.__initRafForceUpdate(props);
+        }
+
+        return this;
+    },
+
     replaceState: function (state) {
         this.__nextState = state;
 
         return this.forceUpdate();
     },
 
-    __initRafForceUpdate: function () {
+    __initRafForceUpdate: function (props) {
         if (this.__isInitedRafForceUpdate) {
             return this;
         }
@@ -285,15 +271,15 @@ var Component = Base.extend({
         raf(function () {
             this.__isInitedRafForceUpdate = false;
             this.__vWidget.childrenVWidgets.length = 0;
-            this.__update(true).emit('DOMREADY');
+            this.__update(true, props).emit('DOMREADY');
         }.bind(this));
 
         return this;
     },
 
-    forceUpdate: function () {
+    forceUpdate: function (props) {
         if (this.isReady()) {
-            this.__initRafForceUpdate();
+            this.__initRafForceUpdate(props);
         }
 
         return this;
@@ -336,7 +322,20 @@ var Component = Base.extend({
         return function off () {
             delete events[hash];
         };
-    }
+    },
+
+    __toTypes: (function () {
+        var map = {};
+
+        map[Function] = function (value) { return typeof value === 'function' ? value : h.noop; };
+        map[Object] = function (value) { return typeof value === 'object' ? value : {}; };
+        map[Array] = function (value) { return value instanceof Array ? value : []; };
+        map[Boolean] = function (value) { return value === 'true'; };
+        map[Number] = Number;
+        map[String] = String;
+
+        return map;
+    })()
 });
 
 module.exports = Component;

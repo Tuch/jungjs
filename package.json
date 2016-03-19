@@ -1,11 +1,17 @@
 {
-  "name": "JungJS",
-  "version": "1.0.0",
-  "description": "Yet another experimental reqctjs clone",
-  "main": "index.js",
-  "scripts": {},
-  "author": "Alex Afonin",
+  "name": "jungjs",
+  "description": "Friendly implementaion of ReactJS API based on Virtual-Dom library",
+  "version": "1.0.1",
   "license": "ISC",
+  "homepage": "https://github.com/Tuch/jungjs",
+  "scripts": {},
+  "main": "index.js",
+  "author": {
+    "name": "Alex Afonin"
+  },
+  "bugs": {
+    "url": "https://github.com/Tuch/jungjs/issues"
+  },
   "dependencies": {
     "vdom-to-html": "2.2.0",
     "vdom-virtualize": "1.0.1",
@@ -13,5 +19,9 @@
   },
   "devDependencies": {
     "eslint": "^2.2.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Tuch/jungjs.git"
   }
 }

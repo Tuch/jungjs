@@ -4,10 +4,6 @@ var toHTML = require('vdom-to-html');
 
 exports.noop = function () {};
 
-exports.registerComponent = function (name, getter, componentsHash) {
-    componentsHash[name.toUpperCase()] = getter;
-};
-
 exports.toDOM = function (vNode) {
     return dom.create(vNode, {warn: console.warn.bind(console)});
 };
@@ -35,8 +31,8 @@ exports.snakeToCamel = function (string) {
 };
 
 exports.camelToSnake = function(string) {
-    return string.replace(/([A-Z])/g, function($1) {
-        return '-' + $1.toLowerCase();
+    return string.replace(/([A-Z])/g, function(m) {
+        return '-' + m.toLowerCase();
     });
 };
 

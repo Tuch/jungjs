@@ -1,12 +1,13 @@
 var VirtualWidget = require('./VirtualWidget.js');
 var Component = require('./Component.js');
-var extend = require('./extend.js');
+var defaults = require('./defaults.js');
 
 module.exports = {
-    createNode: function (componentProto, initialState) {
+    createNode: function (componentProto, props) {
         var surrogateProto = {
-            getInitialState: function () {
-                return extend(componentProto.getInitialState && componentProto.getInitialState() || {}, initialState);
+            name: componentProto.name || 'ROOT',
+            getDefaultProps: function () {
+                return defaults(props, componentProto.getDefaultProps && componentProto.getDefaultProps());
             }
         };
 
@@ -22,8 +23,8 @@ module.exports = {
         return node.com;
     },
 
-    render: function (componentProto, rootNode, initialState) {
-        var node = this.createNode(componentProto, initialState);
+    render: function (componentProto, rootNode, props) {
+        var node = this.createNode(componentProto || {}, props);
 
         rootNode.appendChild(node);
 

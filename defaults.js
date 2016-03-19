@@ -3,12 +3,12 @@ module.exports = function (dst) {
 
     dst = dst || {};
 
-    for (var i = 0, length = args.length; i < length; i++) {
-        var obj = args[i];
+    for (var i = args.length; i; i--) {
+        var obj = args[i - 1];
 
         if (obj) {
             for (var key in obj) {
-                dst[key] = obj[key];
+                dst[key] = dst[key] === undefined ? obj[key] : dst[key];
             }
         }
     }
