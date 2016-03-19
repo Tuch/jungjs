@@ -1,6 +1,8 @@
+var raf = require('./raf.js');
 var h = require('./helpers.js');
 
 var VirtualWidget = function (originalVNode, ownerVWidget, Component) {
+    this.name = Component.prototype.name;
     this.uid = h.getUniqueId();
     this.ownerVWidget = ownerVWidget;
     this.childrenVWidgets = [];
@@ -22,7 +24,11 @@ VirtualWidget.prototype = {
 
         com.__mount();
 
-        isRoot && com.emit('DOMREADY');
+        if (isRoot) {
+            raf(function () {
+                com.emit('DOMREADY');
+            });
+        }
 
         return com.node;
     },
@@ -102,6 +108,8 @@ VirtualWidget.prototype = {
         var Component = componentsHash[vNode.tagName], vWidget;
 
         if (Component) {
+            Component.prototype.name = Component.prototype.name || vNode.tagName;
+
             vWidget = new VirtualWidget(vNode, this, Component);
         }
 
@@ -131,7 +139,7 @@ VirtualWidget.prototype = {
 
         if (!isChild) {
             if (result.properties && result.properties.className || (this.originalVNode && this.originalVNode.properties.className)) {
-                var className = (result.properties.className || '') + ' ' + (this.originalVNode.properties.className || '');
+                var className = (result.properties.className || '') + ' ' + (this.originalVNode && this.originalVNode.properties.className || '');
 
                 result.properties.className = result.properties.attributes['class'] = className;
             }
