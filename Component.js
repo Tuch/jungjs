@@ -330,7 +330,7 @@ var Component = Base.extend({
         map[Function] = function (value) { return typeof value === 'function' ? value : h.noop; };
         map[Object] = function (value) { return typeof value === 'object' ? value : {}; };
         map[Array] = function (value) { return value instanceof Array ? value : []; };
-        map[Boolean] = function (value) { return value === 'true'; };
+        map[Boolean] = function (value) { return value !== 'false' && !!value; };
         map[Number] = Number;
         map[String] = String;
 
