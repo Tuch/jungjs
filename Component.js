@@ -7,7 +7,7 @@ var defaults = require('./defaults.js');
 var Base = require('./Base.js');
 
 var Component = Base.extend({
-    name: 'NO-NAME',
+    name: '',
     assignEvents: h.noop,
     unassignEvents: h.noop,
     componentWillMount: h.noop,
@@ -22,6 +22,7 @@ var Component = Base.extend({
     childrens: {},
     __phase: 'MOUNTING',
     __isInitedRafForceUpdate: false,
+    __destroyed: false,
 
     constructor: function (vWidget) {
         this.__uid = h.getUniqueId();
@@ -77,13 +78,20 @@ var Component = Base.extend({
     },
 
     __onDestroy: function () {
+        if (this.__destroyed) {
+            return;
+        }
+
+        this.__destroyed = true;
+
+        this.componentWillUnmount();
+        this.unassignEvents();
+
         if (this.node.remove) {
             this.node.remove();
-
         } else if (this.node.removeNode) {
             this.node.removeNode(true);
         }
-        this.__vWidget.destroy(this.node);
     },
 
     __createProps: function (props) {
@@ -330,7 +338,7 @@ var Component = Base.extend({
         map[Function] = function (value) { return typeof value === 'function' ? value : h.noop; };
         map[Object] = function (value) { return typeof value === 'object' ? value : {}; };
         map[Array] = function (value) { return value instanceof Array ? value : []; };
-        map[Boolean] = function (value) { return value === 'true'; };
+        map[Boolean] = function (value) { return value !== 'false' && !!value; };
         map[Number] = Number;
         map[String] = String;
 
