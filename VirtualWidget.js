@@ -17,7 +17,6 @@ var VirtualWidget = function (originalVNode, ownerVWidget, Component) {
 VirtualWidget.prototype = {
     type: 'Widget',
 
-    destroyed: false,
 
     init: function (isRoot) {
         var com = this.com = new this.Component(this);
@@ -36,9 +35,9 @@ VirtualWidget.prototype = {
     update: function (prevWidget, node) {
         var com = this.com = prevWidget.com;
 
-        com.__vWidget = this;
         com.node = node;
-        com.__update();
+        com.__vWidget = this;
+        !com.__destroyed && com.__update();
 
         prevWidget.getChildrenWidgets().forEach(function (widget) {
             if (widget.com && !h.checkNodeForParent(widget.com.node, document)) {
@@ -49,15 +48,8 @@ VirtualWidget.prototype = {
         return node;
     },
 
-    destroy: function (node) {
-        if (this.destroyed) {
-            return;
-        }
-
-        this.com.componentWillUnmount();
-        this.com.unassignEvents();
-
-        this.destroyed = true;
+    destroy: function () {
+        this.com.emit('DESTROY');
     },
 
     getParentWidgets: function (list) {
