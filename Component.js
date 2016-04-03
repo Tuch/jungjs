@@ -5,6 +5,7 @@ var h = require('./helpers.js');
 var extend = require('./extend.js');
 var defaults = require('./defaults.js');
 var Base = require('./Base.js');
+var compile = require('./compile.js');
 
 var Component = Base.extend({
     name: '',
@@ -160,7 +161,7 @@ var Component = Base.extend({
     },
 
     __compile: function () {
-        return this.__vWidget.compile(this.render(), this.constructor.childrens);
+        return compile(this.__vWidget, this.render(), this.constructor.childrens);
     },
 
     __mount: function () {
@@ -223,6 +224,35 @@ var Component = Base.extend({
         return this;
     },
 
+    __initRafForceUpdate: function (props) {
+        if (this.__isInitedRafForceUpdate) {
+            return this;
+        }
+
+        this.__isInitedRafForceUpdate = true;
+
+        raf(function () {
+            this.__isInitedRafForceUpdate = false;
+            this.__vWidget.childrenVWidgets.length = 0;
+            this.__update(true, props).emit('DOMREADY');
+        }.bind(this));
+
+        return this;
+    },
+
+    __toTypes: (function () {
+        var map = {};
+
+        map[Function] = function (value) { return typeof value === 'function' ? value : h.noop; };
+        map[Object] = function (value) { return typeof value === 'object' ? value : {}; };
+        map[Array] = function (value) { return value instanceof Array ? value : []; };
+        map[Boolean] = function (value) { return value !== 'false' && !!value; };
+        map[Number] = Number;
+        map[String] = String;
+
+        return map;
+    })(),
+
     getInitialState: function () {
         return {};
     },
@@ -269,22 +299,6 @@ var Component = Base.extend({
         return this.forceUpdate();
     },
 
-    __initRafForceUpdate: function (props) {
-        if (this.__isInitedRafForceUpdate) {
-            return this;
-        }
-
-        this.__isInitedRafForceUpdate = true;
-
-        raf(function () {
-            this.__isInitedRafForceUpdate = false;
-            this.__vWidget.childrenVWidgets.length = 0;
-            this.__update(true, props).emit('DOMREADY');
-        }.bind(this));
-
-        return this;
-    },
-
     forceUpdate: function (props) {
         if (this.isReady()) {
             this.__initRafForceUpdate(props);
@@ -294,19 +308,13 @@ var Component = Base.extend({
     },
 
     broadcast: function (event, args) {
-        this.__vWidget.trigger(this.__vWidget.getParentWidgets(), event, args);
-
-        return this;
-    },
-
-    destroy: function () {
-        this.emit('DESTROY');
+        this.triggerList(this.__vWidget.getParentComs(), event, args);
 
         return this;
     },
 
     emit: function (event, args) {
-        this.__vWidget.trigger(this.__vWidget.getChildrenWidgets(), event, args);
+        this.triggerList(this.__vWidget.getChildrenComs(), event, args);
 
         return this;
     },
@@ -316,6 +324,16 @@ var Component = Base.extend({
 
         for (var hash in events) {
             events[hash].apply(this, args);
+        }
+
+        return this;
+    },
+
+    triggerList: function (list, event, args) {
+        for (var i = 0, length = list.length; i < length; i++) {
+            if (list[i]) {
+                list[i].trigger(event, args);
+            }
         }
 
         return this;
@@ -332,18 +350,15 @@ var Component = Base.extend({
         };
     },
 
-    __toTypes: (function () {
-        var map = {};
+    destroy: function () {
+        this.emit('DESTROY');
 
-        map[Function] = function (value) { return typeof value === 'function' ? value : h.noop; };
-        map[Object] = function (value) { return typeof value === 'object' ? value : {}; };
-        map[Array] = function (value) { return value instanceof Array ? value : []; };
-        map[Boolean] = function (value) { return value !== 'false' && !!value; };
-        map[Number] = Number;
-        map[String] = String;
+        return this;
+    },
 
-        return map;
-    })()
+    isUnmounted: function () {
+        return this.__destroyed;
+    }
 });
 
 module.exports = Component;

@@ -1,3 +1,5 @@
+var noop = function () { };
+
 var setter = function (context, value, path) {
     evalInContext(context, 'this.' + path + ' = value;', {'value': value});
 }
@@ -15,16 +17,14 @@ var evalInContext = function (context, source, locals) {
 
     locals = locals || {};
 
-    var args = [],
-        values = [],
-        result;
+    var args = [], values = [], result, key;
 
-    for (var key in context) {
+    for (key in context) {
         args.push(key);
         values.push(prepareContextMethod(context[key], context, source));
     }
 
-    for (var key in locals) {
+    for (key in locals) {
         args.push(key);
         values.push(prepareContextMethod(locals[key], context, source));
     }
@@ -34,14 +34,38 @@ var evalInContext = function (context, source, locals) {
     try {
         result = Function.apply(null, args).apply(context, values);
     } catch (e) {
-        console.error('$parse:', e)
+        console.error('$parse:', e);
     }
 
     return result;
 }
 
+function getValueByPath(acc, path) {
+    path = path.split('.');
+
+    for (var i = 0, length = path.length; i < length; i++) {
+        acc = typeof acc === 'object' && acc ? acc[path[i]] : undefined;
+    }
+
+    return acc;
+}
+
 module.exports = function (expression) {
+    if (expression === undefined) {
+        return noop;
+    }
+
+    expression = expression.trim();
+
+    var isPath = expression.indexOf('[') === -1 && expression.indexOf('(') === -1;
+
     var getter = function (context, locals) {
+        if (isPath) {
+            var value = getValueByPath(context, expression);
+
+            return typeof value === 'function' ? value.bind(context) : value;
+        }
+
         return evalInContext(context, expression, locals);
     }
 

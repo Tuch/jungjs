@@ -3,7 +3,7 @@ var Component = require('./Component.js');
 var defaults = require('./defaults.js');
 
 module.exports = {
-    version: '1.0.3',
+    version: '1.0.4',
     createNode: function (componentProto, props) {
         var surrogateProto = {
             name: componentProto.name || 'ROOT',
