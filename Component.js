@@ -1,4 +1,3 @@
-var raf = require('./raf.js');
 var error = require('./error.js');
 var parse = require('./parse.js');
 var h = require('./helpers.js');
@@ -6,6 +5,7 @@ var extend = require('./extend.js');
 var defaults = require('./defaults.js');
 var Base = require('./Base.js');
 var compile = require('./compile.js');
+var rafQueue = require('./rafQueue.js');
 
 var Component = Base.extend({
     name: '',
@@ -16,6 +16,7 @@ var Component = Base.extend({
     componentWillUpdate: h.noop,
     componentDidUpdate: h.noop,
     componentWillUnmount: h.noop,
+    componentDidUnmount: h.noop,
     componentWillReceiveProps: h.noop,
     getChildContext: h.noop,
     propTypes: {},
@@ -23,7 +24,7 @@ var Component = Base.extend({
     childrens: {},
     __phase: 'MOUNTING',
     __isInitedRafForceUpdate: false,
-    __destroyed: false,
+    __isMounted: false,
 
     constructor: function (vWidget) {
         this.__uid = h.getUniqueId();
@@ -35,8 +36,8 @@ var Component = Base.extend({
         this.state = this.getInitialState();
         this.props = this.__createProps();
         this.selectors = this.__getInintialSelectors();
-        this.on('DOMREADY', this.__onDomReady);
-        this.on('DESTROY', this.__onDestroy);
+        this.__onMount = this.__onMount.bind(this);
+        this.__onUnmount = this.__onUnmount.bind(this);
     },
 
     __initContext: function () {
@@ -61,38 +62,6 @@ var Component = Base.extend({
         }
 
         return childrens;
-    },
-
-    __onDomReady: function () {
-        var phase = this.__phase;
-
-        this.__phase = 'READY';
-        if (phase === 'MOUNTING') {
-            this.componentDidMount();
-        }
-
-        if (phase === 'UPDATING') {
-            this.componentDidUpdate(this.__prevProps, this.__prevState);
-            delete this.__prevProps;
-            delete this.__prevState;
-        }
-    },
-
-    __onDestroy: function () {
-        if (this.__destroyed) {
-            return;
-        }
-
-        this.__destroyed = true;
-
-        this.componentWillUnmount();
-        this.unassignEvents();
-
-        if (this.node.remove) {
-            this.node.remove();
-        } else if (this.node.removeNode) {
-            this.node.removeNode(true);
-        }
     },
 
     __createProps: function (props) {
@@ -176,66 +145,67 @@ var Component = Base.extend({
         this.node.com = this;
         this.assignEvents();
 
+        rafQueue(this.__onMount);
+
         return this;
     },
 
-    __update: function (isInitiator, props) {
-        this.__phase = 'UPDATING';
-        this.__nextProps = this.__createProps(isInitiator ? (props || this.props) : null);
-        this.__nextState = this.__nextState || this.state;
+    __onMount: function () {
+        this.componentDidMount();
+        this.__phase = 'READY';
+        this.__isMounted = true;
+    },
 
-        if (this.__nextProps !== this.props) {
-            this.componentWillReceiveProps(this.__nextProps, this.__nextState);
+    __onUnmount: function () {
+        this.componentDidUnmount();
+    },
+
+    __update: function (isInitiator, state, props) {
+        if (!this.isMounted()) {
+            return this;
         }
 
-        if (!this.shouldComponentUpdate(this.__nextProps, this.__nextState)) {
-            this.state = this.__nextState || this.state;
-            this.props = this.__nextProps || this.props;
-            delete this.__nextProps;
-            delete this.__nextState;
+        this.__phase = 'UPDATING';
+
+        var nextProps = this.__createProps(isInitiator ? (props || this.props) : null);
+        var nextState = state || this.state;
+
+        if (nextProps !== this.props) {
+            this.componentWillReceiveProps(nextProps, nextState);
+        }
+
+        if (!this.shouldComponentUpdate(nextProps, nextState)) {
+            this.state = nextState;
+            this.props = nextProps;
 
             return this;
         }
 
-        this.componentWillUpdate(this.__nextProps, this.__nextState);
+        this.componentWillUpdate(nextProps, nextState);
 
-        this.__prevProps = this.props;
-        this.__prevState = this.state;
-        this.state = this.__nextState || this.state;
-        this.props = this.__nextProps || this.props;
-        delete this.__nextProps;
-        delete this.__nextState;
+        prevProps = this.props;
+        prevState = this.state;
+
+        this.state = nextState;
+        this.props = nextProps;
 
         var newVNode = this.__compile();
+        var patch = h.getDiff(this.vNode, newVNode);
 
-        this.node = h.applyPatch(this.node, h.getDiff(this.vNode, newVNode));
-
-        var emptyWidget = h.findEmptyWidget(newVNode);
-
-        if (emptyWidget) {
-            console.warn('Do you have widget without component! Check uniqueness of your keys in this widget!', this.__vWidget.name);
-            console.warn('Empty widget', emptyWidget);
-            console.warn('old vNode', this.vNode);
-            console.warn('new vNode', newVNode);
-        }
-
+        this.node = h.applyPatch(this.node, patch);
         this.vNode = newVNode;
+
+        this.__unmountList(h.findLostComs(patch, 7));
+        this.componentDidUpdate(prevProps, prevState);
+        this.__phase = 'READY';
 
         return this;
     },
 
-    __initRafForceUpdate: function (props) {
-        if (this.__isInitedRafForceUpdate) {
-            return this;
-        }
-
-        this.__isInitedRafForceUpdate = true;
-
-        raf(function () {
-            this.__isInitedRafForceUpdate = false;
-            this.__vWidget.childrenVWidgets.length = 0;
-            this.__update(true, props).emit('DOMREADY');
-        }.bind(this));
+    __unmountList: function (coms) {
+        for (var i = 0, length = coms.length; i < length; i++) {
+            coms[i].unmount();
+        };
 
         return this;
     },
@@ -286,11 +256,17 @@ var Component = Base.extend({
     },
 
     setProps: function (props) {
-        if (this.isReady()) {
-            this.__initRafForceUpdate(props);
+        if (typeof props === 'function') {
+            props = props(this.state, this.props);
         }
 
-        return this;
+        return this.replaceProps(extend({}, this.props, this.__nextProps, props));
+    },
+
+    replaceProps: function (props) {
+        this.__nextProps = props;
+
+        return this.forceUpdate();
     },
 
     replaceState: function (state) {
@@ -299,65 +275,46 @@ var Component = Base.extend({
         return this.forceUpdate();
     },
 
-    forceUpdate: function (props) {
-        if (this.isReady()) {
-            this.__initRafForceUpdate(props);
+    forceUpdate: function () {
+        if (this.__isInitedRafForceUpdate) {
+            return this;
         }
 
-        return this;
-    },
+        this.__isInitedRafForceUpdate = true;
 
-    broadcast: function (event, args) {
-        this.triggerList(this.__vWidget.getParentComs(), event, args);
-
-        return this;
-    },
-
-    emit: function (event, args) {
-        this.triggerList(this.__vWidget.getChildrenComs(), event, args);
+        rafQueue(function () {
+            this.__isInitedRafForceUpdate = false;
+            this.__update(true, this.__nextState, this.__nextProps);
+        }.bind(this));
 
         return this;
     },
 
-    trigger: function (event, args) {
-        var events = this.__events[event] = this.__events[event] || {};
-
-        for (var hash in events) {
-            events[hash].apply(this, args);
+    unmount: function () {
+        if (!this.isMounted()) {
+            return;
         }
 
-        return this;
-    },
+        this.__unmountList(h.findComs(this.vNode));
+        this.componentWillUnmount();
+        this.unassignEvents();
+        this.__isMounted = false;
 
-    triggerList: function (list, event, args) {
-        for (var i = 0, length = list.length; i < length; i++) {
-            if (list[i]) {
-                list[i].trigger(event, args);
-            }
+        if (this.node.remove) {
+            this.node.remove();
+        } else if (this.node.removeNode) {
+            this.node.removeNode(true);
         }
 
-        return this;
-    },
+        delete this.node;
 
-    on: function (event, fn) {
-        var events = this.__events[event] = this.__events[event] || {},
-            hash = h.s4();
-
-        events[hash] = fn;
-
-        return function off () {
-            delete events[hash];
-        };
-    },
-
-    destroy: function () {
-        this.emit('DESTROY');
+        rafQueue(this.__onUnmount);
 
         return this;
     },
 
-    isUnmounted: function () {
-        return this.__destroyed;
+    isMounted: function () {
+        return this.__isMounted;
     }
 });
 

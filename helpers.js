@@ -44,46 +44,32 @@ exports.getUniqueId = function() {
     return s4() + '-' + s4();
 };
 
-exports.checkNodeForParent = function(node, parent) {
-    while (node = node.parentNode) {
-        if (node === parent) {
-            return true;
+var findLostComs = exports.findLostComs = function (patch, type, list) {
+    list = list || [];
+
+    for (var key in patch) {
+        var val = patch[key];
+
+        if (val instanceof Array) {
+            findLostComs(val, type, list);
+        } else if (val.type === type) {
+            findComs(val.vNode, list, true);
         }
     }
 
-    return false;
-};
+    return list;
+}
 
-var findEmptyWidget = exports.findEmptyWidget = function (vNode) {
-    if (vNode.Component && !vNode.com) {
-        return vNode;
-    }
+var findComs = exports.findComs = function (vNode, list) {
+    list = list || [];
 
-    if (vNode.children) {
-        for (var i = 0, length = vNode.children.length, result; i < length; i++) {
-            result = findEmptyWidget(vNode.children[i]);
-
-            if (result) {
-                return result;
-            }
-        }
-    }
-};
-
-var getRootWidget = exports.getRootWidget = function (vNode) {
     if (vNode.type === 'Widget') {
-        return vNode;
-    }
-
-    if (!vNode.children) {
-        return undefined;
-    }
-
-    for (var i = 0, length = vNode.children.length; i < length; i++) {
-        var widget = getRootWidget(vNode.children[i]);
-
-        if (widget) {
-            return widget;
+        list.unshift(vNode.com);
+    } else if (vNode.children) {
+        for (var i = 0, length = vNode.children.length; i < length; i++) {
+            findComs(vNode.children[i], list);
         }
     }
-};
+
+    return list;
+}

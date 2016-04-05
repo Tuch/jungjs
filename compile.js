@@ -25,6 +25,8 @@ function transcludeChildren(ownerVWidget, vNode) {
     if (vNode.properties.attributes.hasOwnProperty('children')) {
         expression = vNode.properties.attributes.children;
 
+        delete vNode.properties.attributes.children;
+
         if (expression) {
             children = parse(expression)(context);
         } else {
@@ -33,9 +35,20 @@ function transcludeChildren(ownerVWidget, vNode) {
 
         if (children) {
             vNode.children = children;
-            vNode.count = originalVNode.count;
+            vNode.count = sumChildrenCount(children);
         }
+
     }
+}
+
+function sumChildrenCount(children) {
+    var acc = 0;
+
+    for (var i = 0, length = children.length; i < length; i++) {
+        acc += (children[i].count || 0);
+    };
+
+    return acc + children.length;
 }
 
 function tryToCreateVWidget(ownerVWidget, vNode, componentsHash) {

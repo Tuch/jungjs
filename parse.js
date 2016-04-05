@@ -50,6 +50,8 @@ function getValueByPath(acc, path) {
     return acc;
 }
 
+var isExpression = /\=|\[|\(|\;/;
+
 module.exports = function (expression) {
     if (expression === undefined) {
         return noop;
@@ -57,7 +59,7 @@ module.exports = function (expression) {
 
     expression = expression.trim();
 
-    var isPath = expression.indexOf('[') === -1 && expression.indexOf('(') === -1;
+    var isPath = !isExpression.test(expression);
 
     var getter = function (context, locals) {
         if (isPath) {
