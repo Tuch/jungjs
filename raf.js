@@ -9,11 +9,7 @@ var requestAnimationFrame = window.requestAnimationFrame ||
 var rafSupported = !!requestAnimationFrame,
     nativeFn = function (fn) {
         var id = requestAnimationFrame(function () {
-            try {
-                fn && fn.apply(this);
-            } catch (e) {
-                console.error(e);
-            }
+            fn && fn.apply(this);
         });
         return function () {
             cancelAnimationFrame(id);

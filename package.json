@@ -1,7 +1,7 @@
 {
   "name": "jungjs",
   "description": "Friendly implementaion of ReactJS API based on Virtual-Dom library",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "license": "ISC",
   "homepage": "https://github.com/Tuch/jungjs",
   "scripts": {},

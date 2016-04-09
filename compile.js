@@ -67,32 +67,28 @@ function getKeyFromVNode(vNode) {
     return vNode.key || vNode.properties.attributes.key || undefined;
 }
 
-function compileVNode(ownerVWidget, componentsHash, vNode) {
+function compileVNode(ownerVWidget, vNode, componentsHash) {
+    if (vNode.type !== 'VirtualNode') {
+        return vNode;
+    }
+
     var children = vNode.children || [];
 
     for (var i = 0, length = children.length; i < length; i++) {
         var currCount = children[i].count;
 
-        children[i] = compile(ownerVWidget, children[i], componentsHash);
+        children[i] = compileVNode(ownerVWidget, children[i], componentsHash);
         vNode.count -= (currCount || 0) - (children[i].count || 0);
     }
 
     transcludeChildren(ownerVWidget, vNode);
 
     vNode.key = getKeyFromVNode(vNode);
-}
-
-function compile(ownerVWidget, vNode, componentsHash) {
-    if (vNode.type !== 'VirtualNode') {
-        return vNode;
-    }
-
-    compileVNode(ownerVWidget, componentsHash, vNode);
 
     return tryToCreateVWidget(ownerVWidget, vNode, componentsHash) || vNode;
 }
 
-module.exports = function (ownerVWidget, vNode, componentsHash) {
+module.exports = function compile(ownerVWidget, vNode, componentsHash) {
     if (!vNode) {
         throw error('Empty render', 'Empty render results in {0} component!', ownerVWidget.name);
     }
@@ -101,7 +97,7 @@ module.exports = function (ownerVWidget, vNode, componentsHash) {
         vNode = h.fromHTML(vNode).children[1].children[0];
     }
 
-    compile(ownerVWidget, vNode, componentsHash);
+    vNode = compileVNode(ownerVWidget, vNode, componentsHash);
 
     transcludeClassNames(ownerVWidget.originalVNode, vNode);
 
